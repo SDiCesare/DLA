@@ -1,27 +1,35 @@
 from PIL import Image
-import random
+import csv
+import glob
+import os
 
-width = 100
-height = 100
-# Import an image from directory: 
-input_image = Image.new(mode = "RGB", size = (width, height))
-pixel_map = input_image.load() 
-# taking half of the width:
-red = random.randint(0, 255)
-green = random.randint(0, 255)
-blue = random.randint(0, 255)
-for i in range(width): 
-    for j in range(height): 
-        # getting the RGB pixel value. 
-        # r, g, b, p = input_image.getpixel((i, j)) 
-        # Apply formula of grayscale: 
-        # grayscale = (0.299*r + 0.587*g + 0.114*b) 
-        # setting the pixel value. 
-        red = random.randint(0, 255)
-        green = random.randint(0, 255)
-        blue = random.randint(0, 255)
-        pixel_map[i, j] = (int(red), int(green), int(blue)) 
-# Saving the final output 
-# as "grayscale.png": 
-input_image.save("test.png", format="png")
-# use input_image.show() to see the image on the 
+def make_gif(frame_folder):
+    frames = [Image.open(image) for image in glob.glob(f"{frame_folder}/*.png")]
+    frame_one = frames[0]
+    frame_one.save("test.gif", format="GIF", append_images=frames,
+               save_all=True, duration=1000, loop=0)
+
+def make_frames(width, height, steps_folder):
+    step = 0
+    for filename in os.listdir(steps_folder):
+        with open(os.path.join(steps_folder, filename), 'r') as data_file:
+            image = Image.new(mode = "RGB", size = (width, height))
+            pixel_map = image.load() 
+            csv_reader = csv.reader(data_file, delimiter=',')
+            data = list(csv_reader)
+            for i in range(width):
+                for j in range(height):
+                    if int(data[i][j]) >= 0:
+                        pixel_map[i, j] = (255, 0, 0)
+                    else:
+                        pixel_map[i, j] = (0, 0, 0)
+            image.save("frames/" + str(step) + ".png", format="png")
+            step = step + 1
+
+if __name__ == '__main__':
+    if not os.path.exists("steps"):
+        os.makedirs("steps")
+    if not os.path.exists("frames"):
+        os.makedirs("frames")
+    make_frames(100, 100, "steps")
+    make_gif("frames")
