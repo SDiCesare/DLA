@@ -31,6 +31,7 @@ int height;
 int* map;
 
 void init_particles(Particle* particles, int count) {
+#   pragma omp parallel for schedule(static, 4)
     for (int i = 0; i < count; i++) {
         Particle p;
         p.seed = (uint) (i * 4);
@@ -116,6 +117,7 @@ void save_map(char* file_name) {
     fclose(fp);
 }
 
+
 int main(int argc, char* argv[]) {
     // Read Arguments
     if (argc < 6) {
@@ -128,11 +130,11 @@ int main(int argc, char* argv[]) {
     int steps = atoi(argv[4]);
     int start_x = atoi(argv[5]);
     int start_y = atoi(argv[6]);
+    int start_idx = start_y * width + start_x;
     char* out_map = "crystal.txt";
     if (argc >= 8) {
         out_map = argv[7];
     }
-    int start_idx = start_y * width + start_x;
     // Init Map
     map = (int*)malloc(sizeof(int) * width * height);
     for (int i = 0; i < width * height; i++) {
@@ -145,6 +147,8 @@ int main(int argc, char* argv[]) {
     // Simulate
     double iStart = cpuSecond();
     for (int i = 0; i < steps; i++) {
+        // The sizeof Particle is 16. 64/16 = 4. Should Improve
+#       pragma omp parallel for schedule(static, 4)
         for (int j = 0; j < particles_count; j++) {
             Particle p = particles[j];
             if (p.state == 1) {
