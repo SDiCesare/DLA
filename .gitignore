@@ -52,8 +52,8 @@ Mkfile.old
 dkms.conf
 
 # Printer files
-./bin
-./tests
-./idea.txt
-./run_tests.sh
-./tests.log
+bin/
+idea.txt
+run_tests.sh
+tests.log
+tests/
