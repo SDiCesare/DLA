@@ -57,3 +57,6 @@ idea.txt
 run_tests.sh
 tests.log
 tests/
+s_p/
+p_s/
+s_s/
