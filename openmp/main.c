@@ -119,6 +119,7 @@ void save_map(char* file_name) {
 
 
 int main(int argc, char* argv[]) {
+    omp_set_dynamic(1); // Improving Times?
     // Read Arguments
     if (argc < 6) {
         printf("Usage: main WIDTH HEIGHT PARTICLES STEPS X Y out_map\n");
@@ -135,6 +136,7 @@ int main(int argc, char* argv[]) {
     if (argc >= 8) {
         out_map = argv[7];
     }
+    double iStart = cpuSecond();
     // Init Map
     map = (int*)malloc(sizeof(int) * width * height);
     for (int i = 0; i < width * height; i++) {
@@ -144,8 +146,10 @@ int main(int argc, char* argv[]) {
     // Init Particles
     Particle* particles = (Particle*)malloc(sizeof(Particle) * particles_count);
     init_particles(particles, particles_count);
+	printf("Initialization time: %.3f milliseconds\n", 1000*(cpuSecond() - iStart));
     // Simulate
-    double iStart = cpuSecond();
+    printf("Running Simulation\n");
+    double sStart = cpuSecond();
     for (int i = 0; i < steps; i++) {
         // The sizeof Particle is 16. 64/16 = 4. Should Improve
 #       pragma omp parallel for schedule(static, 4)
@@ -164,12 +168,12 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    double iElaps = cpuSecond() - iStart;
-	printf("Simulation time: %.3f milliseconds\n", 1000*iElaps);
+	printf("Simulation time: %.3f milliseconds\n", 1000*(cpuSecond() - sStart));
     // Save to file
     save_map(out_map);
     // Dealloc
     free(map);
     free(particles);
+	printf("Total time: %.3f milliseconds\n", 1000*(cpuSecond() - iStart));
     return 0;
 }

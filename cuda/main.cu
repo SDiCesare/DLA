@@ -165,6 +165,7 @@ int main(int argc, char* argv[]) {
     if (argc >= 8) {
         h_out_map = argv[7];
     }
+    double iStart = cpuSecond();
     // Init Map
     int* h_map = (int*)malloc(sizeof(int) * h_width * h_height);
     for (int i = 0; i < h_width * h_height; i++) {
@@ -172,7 +173,7 @@ int main(int argc, char* argv[]) {
     }
     h_map[h_start_idx] = 1; // First Crystal
     // Allocating Device Memory
-    printf("Initializing Devices\n");
+    // Initializing Devices
     int* d_map_tmp;
     cudaMalloc((void**)&d_map_tmp, sizeof(int) * h_width * h_height);
     cudaMemcpy(d_map_tmp, h_map, sizeof(int) * h_width * h_height, cudaMemcpyHostToDevice);
@@ -182,7 +183,7 @@ int main(int argc, char* argv[]) {
     Particle* d_particles;
     cudaMalloc((void**)&d_particles, sizeof(int) * h_particles_count);
     cuda_error();
-    printf("Initializing Particles\n");
+    // Initializing Particles
     const int base_div = 256; 
     int init_threads = base_div + (h_particles_count % base_div);
     int init_blocks = h_particles_count / base_div;
@@ -193,8 +194,9 @@ int main(int argc, char* argv[]) {
     init_particles<<<init_blocks, init_threads>>>(d_particles, h_particles_count);
     cudaDeviceSynchronize();
     cuda_error();
+	printf("Initialization time: %.3f milliseconds\n", 1000*(cpuSecond() - iStart));
     printf("Running Simulation\n");
-    double iStart = cpuSecond();
+    double sStart = cpuSecond();
     for (int step = 0; step < h_steps; step++) {
         // printf("Step %d\n", step);
         tick<<<init_blocks, init_threads>>>(d_particles, h_particles_count);
@@ -203,8 +205,7 @@ int main(int argc, char* argv[]) {
     }
     cudaDeviceSynchronize();
     cuda_error();
-    double iElaps = cpuSecond() - iStart;
-	printf("Simulation time: %.3f milliseconds\n", 1000*iElaps);
+	printf("Simulation time: %.3f milliseconds\n", 1000*(cpuSecond() - sStart));
     cudaMemcpyFromSymbol(&d_map_tmp, d_map, sizeof(int *));
     cudaMemcpy(h_map, d_map_tmp, sizeof(int) * h_width * h_height, cudaMemcpyDeviceToHost);
     cuda_error();
@@ -215,5 +216,6 @@ int main(int argc, char* argv[]) {
     cudaFree(d_particles);
     free(h_map);
     cuda_error();
+	printf("Total time: %.3f milliseconds\n", 1000*(cpuSecond() - iStart));
     return 0;
 }

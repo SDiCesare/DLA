@@ -134,6 +134,7 @@ int main(int argc, char* argv[]) {
     }
     int start_idx = start_y * width + start_x;
     // Init Map
+    double iStart = cpuSecond();
     map = (int*)malloc(sizeof(int) * width * height);
     for (int i = 0; i < width * height; i++) {
         map[i] = 0;
@@ -142,8 +143,10 @@ int main(int argc, char* argv[]) {
     // Init Particles
     Particle* particles = (Particle*)malloc(sizeof(Particle) * particles_count);
     init_particles(particles, particles_count);
+	printf("Initialization time: %.3f milliseconds\n", 1000*(cpuSecond() - iStart));
     // Simulate
-    double iStart = cpuSecond();
+    printf("Running Simulation\n");
+    double sStart = cpuSecond();
     for (int i = 0; i < steps; i++) {
         for (int j = 0; j < particles_count; j++) {
             Particle p = particles[j];
@@ -160,12 +163,12 @@ int main(int argc, char* argv[]) {
             }
         }
     }
-    double iElaps = cpuSecond() - iStart;
-	printf("Simulation time: %.3f milliseconds\n", 1000*iElaps);
+	printf("Simulation time: %.3f milliseconds\n", 1000*(cpuSecond() - sStart));
     // Save to file
     save_map(out_map);
     // Dealloc
     free(map);
     free(particles);
+	printf("Total time: %.3f milliseconds\n", 1000*(cpuSecond() - iStart));
     return 0;
 }

@@ -1,0 +1,93 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+
+\title{Diffusion-limited aggregation\\[10pt]
+    \large Programmazione di SIstemi Embedded e Multicore}
+\author{Simone Di Cesare}
+\date{Febbraio 2024}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduzione}
+Il Diffusion-limited aggregation (DLA) è un processo nel quale, partendo da uno spazio N-dimensionale popolato da K particelle, si formano cristalli. Il mio progetto si concentra sull'ottimizzazione di questo processo, utilizzando tecnologie come CUDA e OpenMP per ridurre i tempi di generazione dei cristalli.
+
+\section{Il Progetto}
+Il progetto è stato sviluppato sul sistema operativo Arch Linux, installato su un HP Omen del 2018, facendo uso del compilatore GCC per le versioni seriale e OpenMP e NVCC per la versione CUDA.
+\subsection{La Simulazione}
+La simulazione è stata implementata considerando le seguenti caratteristiche:
+\begin{itemize}
+    \item Spazio bidimensionale.
+    \item Assenza di collisioni con i bordi dello spazio.
+    \item Generazione di un singolo cristallo iniziale.
+    \item Uso di un seed statico per le particelle.
+\end{itemize}
+\subsection{Funzionamento della Simulazione}
+Il funzionamento della simulazione è suddiviso in una serie di passaggi chiave che vengono eseguiti per ogni particella per un numero di iterazioni specificato.
+\begin{enumerate}
+    \item \textbf{Lettura dei dati in ingresso}:
+    \begin{itemize}
+        \item Vengono letti i seguenti parametri in ingresso:
+        \begin{itemize}
+            \item Dimensioni della griglia (larghezza X altezza).
+            \item Numero di particelle.
+            \item Numero di iterazioni da svolgere.
+            \item Posizione iniziale del primo cristallo (X, Y).
+            \item (Facoltativo) File di output per la mappa (default: crystal.txt).
+        \end{itemize}
+    \end{itemize}
+    \item \textbf{Inizializzazione della griglia}:
+    \begin{itemize}
+        \item La griglia viene inizializzata in un vettore ad una dimensione.
+    \end{itemize}
+    \item \textbf{Inizializzazione delle particelle}:
+    \begin{itemize}
+        \item Viene assegnato un seed univoco a ciascuna particella (seed = index * 4).
+        \item Viene assegnata una posizione iniziale randomica a ciascuna particella, basata sul suo seed.
+    \end{itemize}
+    \item \textbf{Esecuzione della Simulazione}:
+    \begin{itemize}
+        \item Per ogni particella e per ogni iterazione:
+            \begin{enumerate}
+                \item \textbf{Controllo dei vicini}:
+                    \begin{itemize}
+                        \item Se la particella ha un vicino già cristallizzato, la particella stessa cristallizza e si ferma.
+                    \end{itemize}
+                \item \textbf{Movimento della Particella}:
+                    \begin{itemize}
+                        \item La particella si muove in una direzione casuale, determinata dal suo seed.
+                    \end{itemize}
+                \item \textbf{Normalizzazione della Posizione}:
+                    \begin{itemize}
+                        \item Se la particella esce dalla griglia, viene riportata all'interno seguendo delle regole di normalizzazione.
+                    \end{itemize}
+            \end{enumerate}
+    \end{itemize}
+\end{enumerate}
+
+\section{Performance}
+Come facilmente deducibile dal funzionamento della simulazione, una versione seriale dell'algoritmo sarà altamente inefficente all'aumentare del numero di particelle o di iterazioni della simulazione.
+Ad esempio, se eseguiamo la simulazione con questi parametri di ingresso:
+\begin{enumerate}
+    \item Larghezza Griglia: 1000
+    \item Altezza Griglia: 1000
+    \item Numero di Particelle: 32768
+    \item Numero Iterazioni: 1000000
+    \item Posizione del primo Cristallo: (99, 99) 
+\end{enumerate}
+Osserviamo come il tempo di esecuzione della simulazione è pari a 224.30 secondi (quasi 4 minuti), mantenendoci comunque su dei numeri contenuti per la griglia e per le particelle.
+Per questo motivo, andiamo a provare due soluzioni differenti per ottimizzare l'esecuzione della simulazione.
+\subsection{OpenMP}
+OpenMP è un'interfaccia di programmazione che permette, tramite delle direttive pragma, di scrivere codice che può essere eseguito simultaneamente su più core della CPU.\\
+Tramite questo meccanismo, ci è possibile suddividere le particelle tra più thread che verranno poi eseguiti simultaneamente, mantenendo invariato il funzionamento della simulazione ma aumentando l'efficenza.
+Nello specifico, la direttiva che permette una migliore performance è:\\
+\textbf{\#   pragma omp parallel for schedule(static, 4)}\\
+Applicata sia per l'inizializzazione delle particelle, sia per il movimento di esse ad ogni iterazione, questa direttiva va ad eseguire in parallelo il for che va a muovere le particelle, assegnando staticamente le iterazioni del ciclo in chunck di 4.
+Quest'utlimo parametro \textbf{schedule(static, 4)} serve ad evitare il false sharing; Il numero 4 deriva dalla comune lunghezza delle linee di cache ad oggi, ossia 64 byte, diviso le dimensioni della struttura dati contenente le particelle, ossia 16 byte. Perciò, possono entrare al più 4 particelle (64/8) per linea di cache, e questo comporta ad assegnare chunk da 4 iterazioni per thread.\\
+Eseguendo la simulazione con i parametri precedenti notiamo una durata della simulazione pari a 1.24 minuti, ottenendo uno Speedup di 3.3 ed Un'efficenza di 0.275.
+\subsection{CUDA}
+CUDA è una piattaforma di calcolo parallelo sviluppato da NVIDIA, con lo scopo di sfruttare la GPU per elaborare dati in parallelo.\\
+Per ottimizzare la simulazione, vengono lanciati tanti thread quante particelle suddivisi in blocchi contenenti 256 thread. I Thread vengono utilizzati sia per l'inizzalizzazzione delle particelle, sia per il loro movimento. Questo sistema abbassa il tempo d'esecuzione della simulazione a ben 18.76 secondi, ottenendo uno speedup di 11.95, ed un efficenza (considerando sempre i 12 core del mio computer) a 0.99.
+
+\end{document}

@@ -60,3 +60,10 @@ tests/
 s_p/
 p_s/
 s_s/
+test.sh
+serial.txt
+serial_map.txt
+openmp.txt
+openmp_map.txt
+cuda.txt
+cuda_map.txt
