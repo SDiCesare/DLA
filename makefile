@@ -10,6 +10,8 @@ TARGETS = cuda serial openmp
 # Default Target
 all: $(TARGETS)
 
+$(shell mkdir -p bin)
+
 # Cuda Executable
 cuda: cuda/main.cu
 	$(NVCC) $(NVCCFLAGS) -o bin/cuda_dla $^
