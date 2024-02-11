@@ -67,17 +67,22 @@ Il funzionamento della simulazione è suddiviso in una serie di passaggi chiave 
 \end{enumerate}
 
 \section{Performance}
-Come facilmente deducibile dal funzionamento della simulazione, una versione seriale dell'algoritmo sarà altamente inefficente all'aumentare del numero di particelle o di iterazioni della simulazione.
+Come facilmente deducibile dal funzionamento della simulazione, una versione seriale dell'algoritmo sarà inefficente tanto quanto sono grandi il numero di particelle e/o di iterazioni della simulazione.
 Ad esempio, se eseguiamo la simulazione con questi parametri di ingresso:
 \begin{enumerate}
-    \item Larghezza Griglia: 1000
-    \item Altezza Griglia: 1000
+    \item Larghezza Griglia: 10000
+    \item Altezza Griglia: 10000
     \item Numero di Particelle: 32768
     \item Numero Iterazioni: 1000000
     \item Posizione del primo Cristallo: (99, 99) 
 \end{enumerate}
-Osserviamo come il tempo di esecuzione della simulazione è pari a 224.30 secondi (quasi 4 minuti), mantenendoci comunque su dei numeri contenuti per la griglia e per le particelle.
-Per questo motivo, andiamo a provare due soluzioni differenti per ottimizzare l'esecuzione della simulazione.
+Osserviamo come il tempo di esecuzione totale è pari a 2566.17 secondi (quasi 43 minuti) suddivisi in:
+\begin{itemize}
+    \item 40.10 millisecondi in inizializzazzione.
+    \item 2557.53 secondi in simulazione.
+    \item Restante in stampa e pulizia della memoria.
+\end{itemize}
+Per ovviare a queste alte tempistiche di simulazione, si propongono due strategie utilizzate per abbassare i tempi di simulazione.
 \subsection{OpenMP}
 OpenMP è un'interfaccia di programmazione che permette, tramite delle direttive pragma, di scrivere codice che può essere eseguito simultaneamente su più core della CPU.\\
 Tramite questo meccanismo, ci è possibile suddividere le particelle tra più thread che verranno poi eseguiti simultaneamente, mantenendo invariato il funzionamento della simulazione ma aumentando l'efficenza.
@@ -85,9 +90,26 @@ Nello specifico, la direttiva che permette una migliore performance è:\\
 \textbf{\#   pragma omp parallel for schedule(static, 4)}\\
 Applicata sia per l'inizializzazione delle particelle, sia per il movimento di esse ad ogni iterazione, questa direttiva va ad eseguire in parallelo il for che va a muovere le particelle, assegnando staticamente le iterazioni del ciclo in chunck di 4.
 Quest'utlimo parametro \textbf{schedule(static, 4)} serve ad evitare il false sharing; Il numero 4 deriva dalla comune lunghezza delle linee di cache ad oggi, ossia 64 byte, diviso le dimensioni della struttura dati contenente le particelle, ossia 16 byte. Perciò, possono entrare al più 4 particelle (64/8) per linea di cache, e questo comporta ad assegnare chunk da 4 iterazioni per thread.\\
-Eseguendo la simulazione con i parametri precedenti notiamo una durata della simulazione pari a 1.24 minuti, ottenendo uno Speedup di 3.3 ed Un'efficenza di 0.275.
+Eseguendo la simulazione con i parametri precedenti otteniamo un tempo totale di 919.59 secodni (15 minuti), suddiviso in:
+\begin{itemize}
+    \item 57.71 millisecondi in inizializzazzione.
+    \item 910.37 secondi in simulazione.
+    \item Il restante in stampa e pulizia della memoria.
+\end{itemize}
+Notiamo come, a patto di un piccolo aumento nel tempo di inizializzazzione, andiamo drasticamente a ridurre i tempi di simulazione, ottenendo uno Speedup di 2.79, con un'efficenza di 0.23 (considerando i 12 core del computer).
 \subsection{CUDA}
 CUDA è una piattaforma di calcolo parallelo sviluppato da NVIDIA, con lo scopo di sfruttare la GPU per elaborare dati in parallelo.\\
-Per ottimizzare la simulazione, vengono lanciati tanti thread quante particelle suddivisi in blocchi contenenti 256 thread. I Thread vengono utilizzati sia per l'inizzalizzazzione delle particelle, sia per il loro movimento. Questo sistema abbassa il tempo d'esecuzione della simulazione a ben 18.76 secondi, ottenendo uno speedup di 11.95, ed un efficenza (considerando sempre i 12 core del mio computer) a 0.99.
+Per ottimizzare la simulazione vengono lanciati tanti thread quante particelle, suddivisi in blocchi contenenti 256 thread, i quali si occupano di inizializzare e muovere le singole particelle.\\
+Notiamo come, utilizzando gli stessi parametri della simulazione seriale, otteniamo un tempo totale d'esecuzione di 175.79 secondi (2.93 minuti), suddiviso in:
+\begin{itemize}
+    \item 180.57 millisecondi in inizializzazzione.
+    \item 163.45 secondi in simulazione.
+    \item Il restante in stampa e pulizia della memoria.
+\end{itemize}
+Come per OpenMP abbiamo un aumento della durata di inizializzazzione, ma andiamo a ridurre di circa 15 volte il tempo d'esecuzione totale della simulazione.
 
+\section{Correttezza}
+Per mantenere invariato il risultato della simulazione per le varie versioni, viene utilizzato un seed statico per ogni particella. Il seed viene calcolato a partire dall'indice
+di quest'ultima, seguendo la formula \textbf{seed = index * 4}. Ogni qualvolta che bisogna estrarre un numero randomico, viene utilizzato il seed della particella e aggiornato con il nuovo valore generato.
+In questo modo, per ogni simulazione non ci sarà variazione alcuna nel movimento o nel posizionamento delle particelle a prescindere dalla versione del programma lanciato.
 \end{document}
