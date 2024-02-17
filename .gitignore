@@ -60,6 +60,8 @@ tests/
 s_p/
 p_s/
 s_s/
+test_sizes.sh
+sizes/
 test.sh
 serial.txt
 serial_map.txt
